@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AURA - Public AI Life Companion</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Prompt -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            100: '#e0edff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                            accent: '#8b5cf6',
+                            emerald: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white bg-slate-950 text-slate-100">
+
+    <!-- MAIN WRAPPER -->
+    <div id="app" class="flex-1 flex flex-col max-w-md md:max-w-4xl mx-auto w-full min-h-screen bg-slate-900 border-x border-slate-800 shadow-2xl relative overflow-hidden">
+        
+        <header class="p-4 border-b border-slate-800 glass-panel sticky top-0 z-30 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-accent to-purple-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                        <i class="fa-solid fa-brain text-lg"></i>
+                    </div>
+                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse" title="System Online"></span>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+                        AURA <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Public V1.0</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 flex items-center gap-1">
+                        <i class="fa-solid fa-signal text-[10px] text-emerald-400"></i> <span id="sync-status-text">พร้อมใช้งานสาธารณะ</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleApiModal()" title="ตั้งค่า API & Proxy Gateway" class="p-2.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 transition active:scale-95 border border-brand-500/30 flex items-center gap-1.5 text-xs font-medium">
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="hidden sm:inline">ตั้งค่า API</span>
+                </button>
+                <button onclick="exportUserData()" title="สำรองข้อมูล" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition active:scale-95 border border-slate-700">
+                    <i class="fa-solid fa-download text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="api-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-server text-brand-500"></i> ตั้งค่าการเชื่อมต่อสำหรับสาธารณะ
+                    </h3>
+                    <button onclick="toggleApiModal()" class="text-slate-400 hover:text-white text-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">รูปแบบการประมวลผล (Backend Mode):</label>
+                        <select id="api-mode-select" onchange="handleApiModeChange()" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-brand-500">
+                            <option value="direct">Direct Gemini API (ใช้ API Key ในเครื่องผู้ใช้)</option>
+                            <option value="proxy">Backend Server / Proxy URL (สำหรับเซิร์ฟเวอร์ส่วนตัว)</option>
+                        </select>
+                    </div>
+
+                    <div id="field-direct-key">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Gemini API Key (ส่วนตัวของผู้ใช้):</label>
+                        <input type="password" id="custom-api-key" placeholder="AIzaSy..." class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500">
+                        <p class="text-[10px] text-slate-400 mt-1">* หากเว้นว่างไว้ ระบบจะใช้ AI Simulation สำรองเพื่อความเสถียร</p>
+                    </div>
+
+                    <div id="field-proxy-url" class="hidden">
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Server Proxy URL Endpoint:</label>
+                        <input type="text" id="proxy-endpoint-url" placeholder="https://your-domain.com/api/gemini" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="saveApiSettings()" class="flex-1 py-2 bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs rounded-xl transition">
+                        บันทึกการตั้งค่า
+                    </button>
+                    <button onclick="toggleApiModal()" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-2 py-2 flex justify-around overflow-x-auto no-scrollbar z-20 sticky top-[65px]">
+            <button onclick="switchTab('tab-taste')" id="nav-tab-taste" class="nav-btn active flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium transition-all text-white bg-brand-600 shadow-md shrink-0">
+                <i class="fa-solid fa-utensils"></i>
+                <span>รสชาติ & ชีวภาพ</span>
+            </button>
+            <button onclick="switchTab('tab-empathy')" id="nav-tab-empathy" class="nav-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all shrink-0">
+                <i class="fa-solid fa-comments"></i>
+                <span>ปรับโทนคำพูด</span>
+            </button>
+            <button onclick="switchTab('tab-memory')" id="nav-tab-memory" class="nav-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all shrink-0">
+                <i class="fa-solid fa-location-dot"></i>
+                <span>ช่วยจำสิ่งของ</span>
+            </button>
+            <button onclick="switchTab('tab-flow')" id="nav-tab-flow" class="nav-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>สร้างฟองสมาธิ</span>
+            </button>
+            <button onclick="switchTab('tab-sleep')" id="nav-tab-sleep" class="nav-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all shrink-0">
+                <i class="fa-solid fa-moon"></i>
+                <span>สมอง & ตื่นนอน</span>
+            </button>
+        </nav>
+
+        <main class="flex-1 p-4 overflow-y-auto space-y-4 pb-20">
+
+            <!-- TAB 1: TASTE & BIO SYNCHRONIZER -->
+            <section id="tab-taste" class="tab-content space-y-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-dna text-brand-500"></i> AI Micro-Bio & Taste Synchronizer
+                            </h2>
+                            <p class="text-xs text-slate-400">วิเคราะห์เคมีในร่างกายเพื่อจัดเมนูชดเชยและคำนวณสัดส่วนเครื่องปรุง</p>
+                        </div>
+                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">Auto Sync</span>
+                    </div>
+
+                    <!-- Interactive Inputs -->
+                    <div class="space-y-3 my-4 bg-slate-900/80 p-3 rounded-xl border border-slate-800/80">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">ระดับความเหนื่อยล้า / น้ำตาลในเลือด:</span>
+                                <span id="val-fatigue" class="text-brand-500 font-semibold">ปานกลาง (50%)</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="50" oninput="updateBioTaste()" id="range-fatigue" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">ลิ้นต้องการรสชาติ (Craving):</span>
+                                <span id="val-taste-type" class="text-purple-400 font-semibold">เผ็ดกลมกล่อม / Umami</span>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1.5 pt-1">
+                                <button onclick="setTaste('spicy')" class="taste-btn px-2 py-1.5 rounded-lg bg-slate-800 text-[11px] hover:bg-brand-600 transition text-slate-300 border border-slate-700">เผ็ด spicy</button>
+                                <button onclick="setTaste('sour')" class="taste-btn px-2 py-1.5 rounded-lg bg-slate-800 text-[11px] hover:bg-brand-600 transition text-slate-300 border border-slate-700">เปรี้ยว sour</button>
+                                <button onclick="setTaste('sweet')" class="taste-btn px-2 py-1.5 rounded-lg bg-slate-800 text-[11px] hover:bg-brand-600 transition text-slate-300 border border-slate-700">หวาน sweet</button>
+                                <button onclick="setTaste('umami')" class="taste-btn active px-2 py-1.5 rounded-lg bg-brand-600 text-[11px] text-white font-medium shadow border border-brand-500">นัว umami</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Recommendation Result -->
+                    <div id="taste-result-card" class="bg-gradient-to-br from-slate-900 via-brand-950/30 to-slate-900 p-4 rounded-xl border border-brand-500/20 relative overflow-hidden">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="text-xs text-brand-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fa-solid fa-sparkles"></i> สูตรวิเคราะห์จาก AI
+                            </div>
+                            <div id="taste-spinner" class="hidden text-brand-400 text-xs animate-spin">
+                                <i class="fa-solid fa-circle-notch"></i>
+                            </div>
+                        </div>
+                        <h3 id="recipe-name" class="text-base font-bold text-white mb-2">ต้มยำกุ้งน้ำใสสูตร Micro-Sodium Balance</h3>
+                        <p id="recipe-desc" class="text-xs text-slate-300 mb-3 leading-relaxed">
+                            ลิ้นของคุณกำลังต้องการความสดชื่น แต่ระดับฮอร์โมน Cortisol สูง AI จึงสั่งเครื่องปรุงหลอกลิ้นด้วยกรดมะนาวแท้ร่วมกับเกลือโพแทสเซียม ลดโซเดียมได้ 65% แต่ลิ้นรับรู้ความอร่อยเต็ม 100%
+                        </p>
+                        
+                        <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-800">
+                            <div class="bg-slate-900/80 p-2 rounded-lg">
+                                <span class="block text-[10px] text-slate-400">โซเดียมสุทธิ</span>
+                                <span id="stat-sodium" class="text-xs font-bold text-emerald-400">220 mg (-65%)</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-2 rounded-lg">
+                                <span class="block text-[10px] text-slate-400">กระตุ้นความสดชื่น</span>
+                                <span id="stat-boost" class="text-xs font-bold text-brand-400">+45% Alpha</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-2 rounded-lg">
+                                <span class="block text-[10px] text-slate-400">สมดุลลำไส้</span>
+                                <span id="stat-gut" class="text-xs font-bold text-purple-400">Probiotics++</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mt-3">
+                            <button onclick="generateRecipeWithAI()" class="py-2 bg-gradient-to-r from-brand-600 to-brand-accent hover:opacity-90 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-98 shadow-md">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> ประมวลผลด้วย AI
+                            </button>
+                            <button onclick="sendToSmartDispenser()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition active:scale-98 border border-slate-700">
+                                <i class="fa-solid fa-sliders"></i> สั่งเครื่องปรุงอัจฉริยะ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-empathy" class="tab-content hidden space-y-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-heart-pulse text-rose-500"></i> AI Empathy & Tone Bridge
+                            </h2>
+                            <p class="text-xs text-slate-400">ปรับเปลี่ยนสำนวนและคีย์เวิร์ดเพื่อรักษาความสัมพันธ์ในเชิงบวก</p>
+                        </div>
+                    </div>
+
+                    <!-- Input message to rephrase -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-slate-300 mb-1">พิมพ์ข้อความต้นฉบับที่คุณต้องการส่ง:</label>
+                            <textarea id="empathy-input" rows="3" class="w-full p-3 rounded-xl bg-slate-900/90 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition" placeholder="เช่น: งานนี้ทำไมส่งช้าจัง บอกว่าจะเสร็จตั้งแต่เมื่อวานแล้วไม่ใช่หรอ?"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="transformTone('gentle')" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-feather text-emerald-400"></i> นุ่มนวล & ประสานงาน
+                            </button>
+                            <button onclick="transformTone('professional')" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-briefcase text-brand-400"></i> สุภาพมืออาชีพ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI Empathy Output -->
+                    <div id="empathy-result" class="mt-4 p-3.5 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-semibold text-rose-400 flex items-center gap-1">
+                                <i class="fa-solid fa-eye"></i> วิเคราะห์สภาวะจิตวิทยาคู่สนทนา:
+                            </span>
+                            <span id="empathy-status-badge" class="text-[10px] bg-rose-500/10 text-rose-300 border border-rose-500/20 px-2 py-0.5 rounded-full">AI Empathy Engine</span>
+                        </div>
+                        <p id="empathy-analysis" class="text-[11px] text-slate-400 italic">
+                            "เลือกโหมดด้านบนเพื่อให้ AI วิเคราะห์เจตนาและปรับสมดุลความสัมพันธ์"
+                        </p>
+
+                        <div class="pt-2 border-t border-slate-800">
+                            <div class="text-xs text-brand-400 font-semibold mb-1 flex items-center justify-between">
+                                <span>ข้อความที่เกลาแล้ว (รักษาเจตนาเดิม):</span>
+                                <i id="empathy-spinner" class="hidden fa-solid fa-circle-notch text-brand-400 animate-spin text-xs"></i>
+                            </div>
+                            <div id="transformed-text" class="p-3 bg-slate-950 rounded-lg text-xs text-emerald-300 border border-emerald-500/20 font-medium leading-relaxed">
+                                "สวัสดีครับ พอดีอยากสอบถามความคืบหน้างานนิดนึงครับ มีติดขัดตรงไหนที่ต้องการให้ช่วยไหมครับ ขอบคุณมากครับ"
+                            </div>
+                        </div>
+
+                        <button onclick="copyTransformedText()" class="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-regular fa-copy"></i> คัดลอกข้อความ
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-memory" class="tab-content hidden space-y-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-cube text-indigo-400"></i> AI Spatial Memory & Recall
+                            </h2>
+                            <p class="text-xs text-slate-400">บันทึก ค้นหา และจำลองตำแหน่งสิ่งของในบ้านด้วยความทรงจำมิติพื้นที่</p>
+                        </div>
+                        <button onclick="toggleAddMemoryModal()" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i> เพิ่มบันทึก
+                        </button>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="flex gap-2 mb-3">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+                            <input type="text" id="memory-search" onkeyup="renderMemoryList()" placeholder="ค้นหาของ เช่น 'กุญแจ', 'แว่นตา'..." class="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+                        <button onclick="askAiWhereIsItem()" class="px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> ถาม AI
+                        </button>
+                    </div>
+
+                    <!-- Memory Items List (Dynamic localstorage rendering) -->
+                    <div id="memory-items-list" class="space-y-2.5">
+                        <!-- Rendered via JavaScript -->
+                    </div>
+
+                    <!-- AR Visualizer Radar Simulation Canvas -->
+                    <div id="ar-modal" class="hidden mt-3 p-3 bg-indigo-950/60 border border-indigo-500/40 rounded-xl text-center space-y-2">
+                        <div class="text-xs font-bold text-indigo-300 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-vr-cardboard text-indigo-400 animate-pulse"></i> จำลองภาพมิติพื้นที่ย้อนหลัง (Spatial AR Radar)
+                        </div>
+                        <div class="relative h-32 bg-slate-950 rounded-lg border border-indigo-500/30 overflow-hidden flex flex-col items-center justify-center">
+                            <canvas id="radar-canvas" class="absolute inset-0 w-full h-full"></canvas>
+                            <p id="ar-status-text" class="text-[11px] text-indigo-200 z-10 bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30">
+                                กำลังประมวลผลพิกัด...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="add-memory-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-bookmark text-indigo-400"></i> บันทึกตำแหน่งสิ่งของใหม่
+                        </h3>
+                        <button onclick="toggleAddMemoryModal()" class="text-slate-400 hover:text-white text-xs">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-300 mb-1">ชื่อสิ่งของ:</label>
+                        <input type="text" id="new-item-title" placeholder="เช่น แว่นสายตา, กระเป๋าสตางค์" class="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-300 mb-1">สถานที่วางไว้:</label>
+                        <input type="text" id="new-item-location" placeholder="เช่น ชั้นวางหนังสือข้างทีวี" class="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white">
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="saveNewMemoryItem()" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl transition">
+                            บันทึก
+                        </button>
+                        <button onclick="toggleAddMemoryModal()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition">
+                            ยกเลิก
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <section id="tab-flow" class="tab-content hidden space-y-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-amber-400"></i> AI Micro-Environment Companion
+                            </h2>
+                            <p class="text-xs text-slate-400">สังเคราะห์คลื่นเสียงสมาธิ (Binaural Audio Engine) ดึงสมองเข้าสู่ Flow State</p>
+                        </div>
+                    </div>
+
+                    <!-- Mode Selector -->
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <button onclick="setFlowMode('focus')" id="mode-focus" class="flow-mode-btn p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-medium text-center transition">
+                            <i class="fa-solid fa-bolt block text-base mb-1"></i>
+                            Deep Focus
+                        </button>
+                        <button onclick="setFlowMode('calm')" id="mode-calm" class="flow-mode-btn p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 text-xs font-medium text-center hover:text-white transition">
+                            <i class="fa-solid fa-spa block text-base mb-1"></i>
+                            Relax & Unwind
+                        </button>
+                        <button onclick="setFlowMode('creativity')" id="mode-creativity" class="flow-mode-btn p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 text-xs font-medium text-center hover:text-white transition">
+                            <i class="fa-solid fa-lightbulb block text-base mb-1"></i>
+                            Creativity
+                        </button>
+                    </div>
+
+                    <!-- Ambient Sound Control & Real Audio Synthesizer -->
+                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 id="flow-title" class="text-xs font-bold text-white">คลื่นเสียง Alpha Waves (432Hz) + Warm Lighting</h3>
+                                <p id="flow-desc" class="text-[11px] text-slate-400">กำลังปรับสภาพแสงสีส้มอมอุ่น ปรับอุณหภูมิ 24°C และส่งคลื่นความถี่สร้างสมาธิ</p>
+                            </div>
+                            <button id="btn-toggle-audio" onclick="toggleAudioSynthesizer()" class="w-11 h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-amber-500/20 transition active:scale-90 shrink-0">
+                                <i class="fa-solid fa-play text-sm" id="audio-icon"></i>
+                            </button>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span>ระดับความเข้มข้นของสภาวะแวดล้อม:</span>
+                                <span id="flow-intensity" class="text-amber-400 font-medium">80% Flow Zone</span>
+                            </div>
+                            <input type="range" min="10" max="100" value="80" oninput="updateFlowIntensity(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-sleep" class="tab-content hidden space-y-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-moon text-purple-400"></i> AI Subconscious & Sleep Readiness
+                            </h2>
+                            <p class="text-xs text-slate-400">วิเคราะห์คลื่นการตื่นนอนและวางแผนวงจรสุขภาพจิตยามเช้า</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-900 p-4 rounded-xl border border-purple-500/30 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-purple-300 font-semibold flex items-center gap-1.5">
+                                <i class="fa-solid fa-chart-line"></i> ประสิทธิภาพการตื่นยามเช้า
+                            </span>
+                            <span class="text-xs font-bold text-emerald-400">92% Deep REM Synchronized</span>
+                        </div>
+
+                        <p id="morning-summary-text" class="text-xs text-slate-300 leading-relaxed">
+                            <strong class="text-purple-300">บทสรุปจิตใต้สำนึกยามเช้า:</strong> เมื่อคืนสมองของคุณกำลังเคลียร์ความเครียดสะสม AI ได้เริ่มปรับสภาพแสง Warm Sunrise และเสียงคลื่นเบาๆ ทำให้ระดับฮอร์โมน Cortisol ลดลง สดชื่นพร้อมเริ่มวันใหม่
+                        </p>
+
+                        <div class="bg-slate-950/70 p-3 rounded-lg border border-purple-500/20">
+                            <h4 class="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                                <span><i class="fa-solid fa-list-check text-brand-400"></i> เช็กลิสต์แนะนำโดย AI:</span>
+                                <i id="morning-spinner" class="hidden fa-solid fa-circle-notch text-purple-400 animate-spin text-xs"></i>
+                            </h4>
+                            <ul id="morning-checklist" class="text-xs text-slate-300 space-y-1.5 pl-2">
+                                <li class="flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> ดื่มน้ำอุณหภูมิห้อง 350 ml + จิบชาเขียวอุ่น
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> เดินรับแสงแดด 10 นาที เพื่อตั้งค่านาฬิกาชีวิต (Circadian)
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> งดเช็กโซเชียลเป็นเวลา 20 นาทีแรก
+                                </li>
+                            </ul>
+                        </div>
+
+                        <button onclick="generateMorningBriefing()" class="w-full py-2 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-98">
+                            <i class="fa-solid fa-rotate text-purple-300"></i> ประมวลผลบทสรุปใหม่ด้วย AI
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white border border-slate-700 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-medium flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+            <span id="toast-message">สั่งการเรียบร้อยแล้ว</span>
+        </div>
+
+    </div>
+
+    <script>
+        let currentTaste = 'umami';
+        let currentFlowMode = 'focus';
+        let isAudioPlaying = false;
+        let audioCtx = null;
+        let oscillatorNode = null;
+        let gainNode = null;
+        let animationFrameId = null;
+
+        // Default memory items if empty
+        const defaultMemoryItems = [
+            { id: '1', title: 'กุญแจรถยนต์', location: 'โต๊ะทำงานข้างโคมไฟ (ชั้น 2)', time: '35 นาทีที่แล้ว', icon: 'fa-key', color: 'indigo' },
+            { id: '2', title: 'แว่นตากันแดด', location: 'เคาน์เตอร์ครัว ข้างแก้วกาแฟ', time: '2 ชั่วโมงที่แล้ว', icon: 'fa-glasses', color: 'emerald' },
+            { id: '3', title: 'ยาประจำตัว', location: 'ลิ้นชักข้างเตียงนอน', time: 'เมื่อวานนี้ 21:30 น.', icon: 'fa-pills', color: 'amber' }
+        ];
+
+        /* API MANAGEMENT & HYBRID FALLBACK */
+        function getApiSettings() {
+            return {
+                mode: localStorage.getItem('aura_api_mode') || 'direct',
+                key: localStorage.getItem('aura_user_key') || '',
+                proxyUrl: localStorage.getItem('aura_proxy_url') || ''
+            };
+        }
+
+        function toggleApiModal() {
+            const modal = document.getElementById('api-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                const settings = getApiSettings();
+                document.getElementById('api-mode-select').value = settings.mode;
+                document.getElementById('custom-api-key').value = settings.key;
+                document.getElementById('proxy-endpoint-url').value = settings.proxyUrl;
+                handleApiModeChange();
+            }
+        }
+
+        function handleApiModeChange() {
+            const mode = document.getElementById('api-mode-select').value;
+            const directDiv = document.getElementById('field-direct-key');
+            const proxyDiv = document.getElementById('field-proxy-url');
+
+            if (mode === 'direct') {
+                directDiv.classList.remove('hidden');
+                proxyDiv.classList.add('hidden');
+            } else {
+                directDiv.classList.add('hidden');
+                proxyDiv.classList.remove('hidden');
+            }
+        }
+
+        function saveApiSettings() {
+            const mode = document.getElementById('api-mode-select').value;
+            const key = document.getElementById('custom-api-key').value.trim();
+            const proxyUrl = document.getElementById('proxy-endpoint-url').value.trim();
+
+            localStorage.setItem('aura_api_mode', mode);
+            localStorage.setItem('aura_user_key', key);
+            localStorage.setItem('aura_proxy_url', proxyUrl);
+
+            showToast("<i class='fa-solid fa-check text-emerald-400'></i> บันทึกการตั้งค่า API สำเร็จ!");
+            toggleApiModal();
+        }
+
+        async function callAiEngine(userPrompt, systemPrompt = "", responseSchema = null) {
+            const settings = getApiSettings();
+
+            if (settings.mode === 'proxy' && settings.proxyUrl) {
+                try {
+                    const res = await fetch(settings.proxyUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: userPrompt, systemPrompt, schema: responseSchema })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        return data.text || JSON.stringify(data);
+                    }
+                } catch (e) {
+                    console.warn("Proxy failed, falling back to client logic", e);
+                }
+            }
+
+            if (settings.key) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${settings.key}`;
+                const payload = {
+                    contents: [{ parts: [{ text: userPrompt }] }]
+                };
+                if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+                if (responseSchema) {
+                    payload.generationConfig = { responseMimeType: "application/json", responseSchema };
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        const json = await response.json();
+                        return json?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    }
+                } catch (err) {
+                    console.warn("Direct API call failed, using smart simulation.", err);
+                }
+            }
+
+            // Fallback Engine if offline or no key
+            return null;
+        }
+
+        async function generateRecipeWithAI() {
+            const fatigue = document.getElementById('range-fatigue').value;
+            const spinner = document.getElementById('taste-spinner');
+            spinner.classList.remove('hidden');
+
+            const systemPrompt = "คุณคือ AI Micro-Bio Nutritionist ตอบ JSON ภาษาไทย";
+            const userPrompt = `ประมวลผลเมนูอาหารลดโซเดียมสำหรับผู้ใช้ที่มีความเหนื่อยล้า ${fatigue}% และต้องการรสชาติ ${currentTaste}`;
+            
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    recipeName: { type: "STRING" },
+                    description: { type: "STRING" },
+                    sodiumText: { type: "STRING" },
+                    boostText: { type: "STRING" },
+                    gutText: { type: "STRING" }
+                },
+                required: ["recipeName", "description", "sodiumText", "boostText", "gutText"]
+            };
+
+            const rawResult = await callAiEngine(userPrompt, systemPrompt, schema);
+
+            if (rawResult) {
+                try {
+                    const data = JSON.parse(rawResult);
+                    document.getElementById('recipe-name').innerText = data.recipeName;
+                    document.getElementById('recipe-desc').innerText = data.description;
+                    document.getElementById('stat-sodium').innerText = data.sodiumText;
+                    document.getElementById('stat-boost').innerText = data.boostText;
+                    document.getElementById('stat-gut').innerText = data.gutText;
+                    showToast("<i class='fa-solid fa-sparkles text-brand-400'></i> ประมวลผลจาก Gemini AI สำเร็จ!");
+                    spinner.classList.add('hidden');
+                    return;
+                } catch(e) {}
+            }
+
+            // Intelligent Fallback
+            setTimeout(() => {
+                document.getElementById('recipe-name').innerText = `สลัดอกไก่ย่างซอส Umami-Dopamine (${currentTaste.toUpperCase()})`;
+                document.getElementById('recipe-desc').innerText = `AI ปรับสัดส่วนเกลือโพแทสเซียมหลอกลิ้นรับรส ให้รสชาติเข้มข้นแต่ลดโซเดียมลง 60% ช่วยฟื้นฟูพลังงานในระดับเซลล์`;
+                document.getElementById('stat-sodium').innerText = "180 mg (-60%)";
+                document.getElementById('stat-boost').innerText = "+50% Energy";
+                document.getElementById('stat-gut').innerText = "Fiber Balance";
+                showToast("<i class='fa-solid fa-check text-emerald-400'></i> ประมวลผลเมนูด้วย AI Simulation สำเร็จ!");
+                spinner.classList.add('hidden');
+            }, 600);
+        }
+
+        async function transformTone(mode) {
+            const input = document.getElementById('empathy-input').value.trim();
+            const output = document.getElementById('transformed-text');
+            const analysis = document.getElementById('empathy-analysis');
+            const spinner = document.getElementById('empathy-spinner');
+
+            if (!input) {
+                showToast("<i class='fa-solid fa-circle-exclamation text-amber-400'></i> กรุณาพิมพ์ข้อความต้นฉบับก่อนครับ");
+                return;
+            }
+
+            spinner.classList.remove('hidden');
+
+            const systemPrompt = `คุณคือ AI Empathy Tone Bridge วิเคราะห์เจตนาและเกลาสำนวนเป็นภาษาไทย ตอบ JSON`;
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    emotionalState: { type: "STRING" },
+                    rephrasedMessage: { type: "STRING" }
+                },
+                required: ["emotionalState", "rephrasedMessage"]
+            };
+
+            const raw = await callAiEngine(`ข้อความ: "${input}" โหมด: ${mode}`, systemPrompt, schema);
+
+            if (raw) {
+                try {
+                    const data = JSON.parse(raw);
+                    analysis.innerText = `"${data.emotionalState}"`;
+                    output.innerText = `"${data.rephrasedMessage}"`;
+                    showToast("<i class='fa-solid fa-heart text-rose-400'></i> ปรับเกลาข้อความเรียบร้อย!");
+                    spinner.classList.add('hidden');
+                    return;
+                } catch(e) {}
+            }
+
+            setTimeout(() => {
+                if (mode === 'gentle') {
+                    analysis.innerText = `"คู่สนทนาอาจกำลังกังวลเรื่องเวลา ให้ใช้วิธีเสนอความช่วยเหลือเพื่อลดแรงกดดัน"`;
+                    output.innerText = `"สวัสดีครับ พอดีอยากติดตามงานส่วนนี้เพิ่มเติมอีกนิดนึงครับ หากมีตรงไหนให้ช่วยประสานงานบอกได้เลยนะครับ ขอบคุณมากครับ"`;
+                } else {
+                    analysis.innerText = `"คู่สนทนาต้องการคำสรุปที่ชัดเจน สั้นกระชับ เพื่อดำเนินการต่อ"`;
+                    output.innerText = `"ขออนุญาตติดตามความคืบหน้าของโครงการครับ เพื่อให้สามารถดำเนินการขั้นตอนต่อไปได้อย่างราบรื่น หากมีข้อติดขัดสามารถแจ้งได้ทันทีครับ"`;
+                }
+                showToast("<i class='fa-solid fa-check text-emerald-400'></i> ปรับคีย์เวิร์ดสำรองสำเร็จ!");
+                spinner.classList.add('hidden');
+            }, 500);
+        }
+
+        function getStoredMemories() {
+            const saved = localStorage.getItem('aura_memories');
+            return saved ? JSON.parse(saved) : defaultMemoryItems;
+        }
+
+        function saveStoredMemories(memories) {
+            localStorage.setItem('aura_memories', JSON.stringify(memories));
+        }
+
+        function renderMemoryList() {
+            const query = document.getElementById('memory-search').value.toLowerCase();
+            const listContainer = document.getElementById('memory-items-list');
+            const items = getStoredMemories();
+
+            const filtered = items.filter(it => it.title.toLowerCase().includes(query) || it.location.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">ไม่พบบันทึกสิ่งของที่ตรงกัน</div>`;
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(item => `
+                <div class="memory-card p-3 bg-slate-900/80 rounded-xl border border-slate-800 hover:border-indigo-500/50 transition flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg bg-${item.color || 'indigo'}-500/20 border border-${item.color || 'indigo'}-500/30 flex items-center justify-center text-${item.color || 'indigo'}-400">
+                            <i class="fa-solid ${item.icon || 'fa-box'}"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">${item.title}</h4>
+                            <p class="text-[11px] text-slate-400">วางไว้: ${item.location}</p>
+                            <span class="text-[10px] text-indigo-400"><i class="fa-regular fa-clock"></i> ${item.time}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="playMemoryPlayback('${item.title}', '${item.location}')" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 rounded-lg text-[11px] border border-indigo-500/30 transition">
+                            <i class="fa-solid fa-radar text-[10px] mr-1"></i> สแกน
+                        </button>
+                        <button onclick="deleteMemoryItem('${item.id}')" class="p-1.5 text-slate-500 hover:text-rose-400 transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleAddMemoryModal() {
+            document.getElementById('add-memory-modal').classList.toggle('hidden');
+        }
+
+        function saveNewMemoryItem() {
+            const title = document.getElementById('new-item-title').value.trim();
+            const location = document.getElementById('new-item-location').value.trim();
+
+            if (!title || !location) {
+                showToast("<i class='fa-solid fa-circle-exclamation text-amber-400'></i> กรุณากรอกข้อมูลให้ครบถ้วน");
+                return;
+            }
+
+            const items = getStoredMemories();
+            items.unshift({
+                id: Date.now().toString(),
+                title: title,
+                location: location,
+                time: 'เพิ่งบันทึกเมื่อครู่',
+                icon: 'fa-location-dot',
+                color: 'indigo'
+            });
+
+            saveStoredMemories(items);
+            renderMemoryList();
+            toggleAddMemoryModal();
+            document.getElementById('new-item-title').value = '';
+            document.getElementById('new-item-location').value = '';
+            showToast("<i class='fa-solid fa-check text-emerald-400'></i> บันทึกตำแหน่งสำเร็จ!");
+        }
+
+        function deleteMemoryItem(id) {
+            let items = getStoredMemories();
+            items = items.filter(it => it.id !== id);
+            saveStoredMemories(items);
+            renderMemoryList();
+            showToast("<i class='fa-solid fa-trash text-amber-400'></i> ลบบันทึกแล้ว");
+        }
+
+        function playMemoryPlayback(itemName, location) {
+            const modal = document.getElementById('ar-modal');
+            const statusText = document.getElementById('ar-status-text');
+            modal.classList.remove('hidden');
+            statusText.innerText = `กำลังสแกนพิกัด AR สำหรับ '${itemName}' ใน '${location}'...`;
+
+            startRadarAnimation();
+        }
+
+        function startRadarAnimation() {
+            const canvas = document.getElementById('radar-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            let angle = 0;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            function draw() {
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = Math.min(centerX, centerY) - 10;
+
+                // Concentric circles
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 0.4, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, radius * 0.8, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Radar Line
+                ctx.strokeStyle = '#818cf8';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius);
+                ctx.stroke();
+
+                angle += 0.05;
+                animationFrameId = requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function toggleAudioSynthesizer() {
+            const icon = document.getElementById('audio-icon');
+
+            if (!isAudioPlaying) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    oscillatorNode = audioCtx.createOscillator();
+                    gainNode = audioCtx.createGain();
+
+                    // Frequency based on current mode
+                    let freq = 432;
+                    if (currentFlowMode === 'calm') freq = 528;
+                    if (currentFlowMode === 'creativity') freq = 315;
+
+                    oscillatorNode.type = 'sine';
+                    oscillatorNode.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+
+                    oscillatorNode.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillatorNode.start();
+
+                    isAudioPlaying = true;
+                    icon.className = "fa-solid fa-pause text-slate-950";
+                    showToast("<i class='fa-solid fa-volume-high text-amber-400'></i> สังเคราะห์คลื่นเสียงเรียบร้อยแล้ว");
+                } catch (e) {
+                    showToast("<i class='fa-solid fa-volume-xmark text-rose-400'></i> ระบบเสียงไม่รองรับเบราว์เซอร์นี้");
+                }
+            } else {
+                if (oscillatorNode) oscillatorNode.stop();
+                isAudioPlaying = false;
+                icon.className = "fa-solid fa-play text-slate-950";
+                showToast("<i class='fa-solid fa-volume-xmark text-slate-400'></i> ปิดคลื่นเสียงเรียบร้อย");
+            }
+        }
+
+        function setFlowMode(mode) {
+            currentFlowMode = mode;
+            document.querySelectorAll('.flow-mode-btn').forEach(btn => {
+                btn.className = 'flow-mode-btn p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 text-xs font-medium text-center hover:text-white transition';
+            });
+            const sel = document.getElementById('mode-' + mode);
+            if (sel) sel.className = 'flow-mode-btn p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-medium text-center transition';
+
+            const title = document.getElementById('flow-title');
+            const desc = document.getElementById('flow-desc');
+
+            if (mode === 'focus') {
+                title.innerText = "คลื่นเสียง Alpha Waves (432Hz) + Warm Focus";
+                desc.innerText = "ปรับสภาพแสงสีส้มอมอุ่น สร้างสมาธิในระดับลึก";
+            } else if (mode === 'calm') {
+                title.innerText = "คลื่นเสียง Theta Waves (528Hz) + Solfeggio Tone";
+                desc.innerText = "คลื่นเสียงความถี่ฟื้นฟูจิตใจและลดความตึงเครียด";
+            } else {
+                title.innerText = "คลื่นเสียง Gamma Creativity + Binaural Beat";
+                desc.innerText = "กระตุ้นสมองให้เปิดรับจินตนาการและไอเดียใหม่ๆ";
+            }
+
+            if (isAudioPlaying && oscillatorNode) {
+                let freq = mode === 'focus' ? 432 : (mode === 'calm' ? 528 : 315);
+                oscillatorNode.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            }
+        }
+
+        function updateFlowIntensity(val) {
+            document.getElementById('flow-intensity').innerText = `${val}% Flow Zone`;
+        }
+
+        async function generateMorningBriefing() {
+            const spinner = document.getElementById('morning-spinner');
+            spinner.classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('morning-summary-text').innerHTML = `<strong class="text-purple-300">บทสรุปจิตใต้สำนึกยามเช้า:</strong> สมองประมวลผลความจำระยะไร้ความกังวล ระดับฮอร์โมน Melatonin ต่ำลงตามธรรมชาติ สมองพร้อมสำหรับกิจกรรมสร้างสรรค์`;
+                spinner.classList.add('hidden');
+                showToast("<i class='fa-solid fa-sparkles text-purple-300'></i> อัปเดตแผนยามเช้าเรียบร้อย!");
+            }, 500);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = 'nav-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all shrink-0';
+            });
+
+            const activeBtn = document.getElementById('nav-' + tabId);
+            if (activeBtn) {
+                activeBtn.className = 'nav-btn active flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium text-white bg-brand-600 shadow-md shrink-0';
+            }
+        }
+
+        function setTaste(t) {
+            currentTaste = t;
+            document.querySelectorAll('.taste-btn').forEach(b => {
+                b.className = 'taste-btn px-2 py-1.5 rounded-lg bg-slate-800 text-[11px] hover:bg-brand-600 transition text-slate-300 border border-slate-700';
+            });
+            event.currentTarget.className = 'taste-btn active px-2 py-1.5 rounded-lg bg-brand-600 text-[11px] text-white font-medium shadow border border-brand-500';
+            updateBioTaste();
+        }
+
+        function updateBioTaste() {
+            const fatigueVal = document.getElementById('range-fatigue').value;
+            const txt = document.getElementById('val-fatigue');
+            if (fatigueVal < 35) {
+                txt.innerText = `สดชื่นดี (${fatigueVal}%)`;
+                txt.className = "text-emerald-400 font-semibold";
+            } else if (fatigueVal < 70) {
+                txt.innerText = `ปานกลาง (${fatigueVal}%)`;
+                txt.className = "text-brand-500 font-semibold";
+            } else {
+                txt.innerText = `เหนื่อยล้าสะสม (${fatigueVal}%)`;
+                txt.className = "text-rose-400 font-semibold";
+            }
+        }
+
+        function sendToSmartDispenser() {
+            showToast("<i class='fa-solid fa-check text-emerald-400'></i> ส่งข้อมูลสัดส่วนเครื่องปรุงสำเร็จ!");
+        }
+
+        function copyTransformedText() {
+            const txt = document.getElementById('transformed-text').innerText;
+            const temp = document.createElement("textarea");
+            temp.value = txt;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand("copy");
+            document.body.removeChild(temp);
+            showToast("<i class='fa-regular fa-copy text-brand-400'></i> คัดลอกข้อความแล้ว");
+        }
+
+        function exportUserData() {
+            const data = {
+                memories: getStoredMemories(),
+                apiSettings: getApiSettings(),
+                exportAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `aura_companion_backup.json`;
+            a.click();
+            showToast("<i class='fa-solid fa-download text-brand-400'></i> ดาวน์โหลดไฟล์สำรองเรียบร้อย");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.innerHTML = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2400);
+        }
+
+        window.onload = function() {
+            renderMemoryList();
+            updateBioTaste();
+        };
+    </script>
+</body>
+</html>
